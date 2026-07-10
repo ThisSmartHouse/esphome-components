@@ -38,7 +38,7 @@ class HughesPowerWatchdog : public PollingComponent, public ble_client::BLEClien
 
   void set_cumulative_energy(sensor::Sensor *energy) { cumulative_energy_ = energy; };  // kilowatt hours
 
-  void set_error_code(sensor::Sensor *error) { error_code_ = error; };  // error code between 0 - 9
+  void set_error_code(sensor::Sensor *error) { error_code_ = error; };  // error code 0-12 (E1-E9, F1-F3)
   void set_error_text(text_sensor::TextSensor *error_text) { error_text_ = error_text; };  // error message text
   uint16_t handle;
 

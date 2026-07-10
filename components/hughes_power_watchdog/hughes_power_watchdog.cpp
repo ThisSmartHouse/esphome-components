@@ -62,9 +62,28 @@ static const std::string Error_09 = "The Power Watchdog is sensing the surge abs
   many surges before they're done.  Fortunately, the Watchdog's surge absorption board is replaceable. Go to\
   hughesautoformers.com and order a new board.";
 
-// Array of error strings indexed by error code value
-static const std::string ErrorText[] = {Error_00, Error_01, Error_02, Error_03, Error_04,
-                                        Error_05, Error_06, Error_07, Error_08, Error_09};
+// F-series faults (frequency / temperature). NOTE: the E-codes above (0-9) were
+// found by inspecting the Hughes app; the F-codes' raw error_code_value is
+// ASSUMED to continue the sequence (10=F1, 11=F2, 12=F3) and is UNVERIFIED --
+// confirm against a real fault (the raw 20-byte frame is logged at VERBOSE).
+static const std::string Error_10 = "The Power Watchdog has determined that the Line 1 frequency from the park\
+  power is out of the safe range (nominally 60 Hz). Out-of-spec frequency is usually a failing park supply or an\
+  unstable generator, and can damage motors and electronics. The Watchdog has shut off park power and will restore\
+  it once the frequency stays in the safe range.";
+
+static const std::string Error_11 = "The Power Watchdog has determined that the Line 2 frequency from the park\
+  power is out of the safe range (nominally 60 Hz). Out-of-spec frequency is usually a failing park supply or an\
+  unstable generator, and can damage motors and electronics. The Watchdog has shut off park power and will restore\
+  it once the frequency stays in the safe range.";
+
+static const std::string Error_12 = "The Power Watchdog is reporting an over-temperature condition. The unit or its\
+  connections are running too hot -- commonly a loose or corroded plug/receptacle causing high-resistance heating\
+  under load. Reduce load and inspect the shore connection; the Watchdog will restore power once it cools to a safe\
+  temperature.";
+
+// Array of error strings indexed by error code value (0-12; see the F-code note above)
+static const std::string ErrorText[] = {Error_00, Error_01, Error_02, Error_03, Error_04, Error_05, Error_06,
+                                        Error_07, Error_08, Error_09, Error_10, Error_11, Error_12};
 
 // Macro to convert 4 bytes of big endian data into int
 #define ReadBigEndianInt32(data, offset) \
@@ -290,7 +309,12 @@ void HughesPowerWatchdog::ReportSensor(bool UseInstanceData) {
       this->error_code_->publish_state(this->error_code_value_);
     }
     if (this->error_text_ != nullptr) {
-      this->error_text_->publish_state(ErrorText[this->error_code_value_]);
+      // Bounds-check: an unexpected/undocumented code must not index past the array.
+      if (this->error_code_value_ < (sizeof(ErrorText) / sizeof(ErrorText[0]))) {
+        this->error_text_->publish_state(ErrorText[this->error_code_value_]);
+      } else {
+        this->error_text_->publish_state("Unknown fault code " + std::to_string(this->error_code_value_));
+      }
     }
   } else {
     if (this->voltage_l1_ != nullptr) {
